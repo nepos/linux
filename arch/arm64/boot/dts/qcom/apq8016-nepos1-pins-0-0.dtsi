@@ -1,0 +1,360 @@
+
+#include <dt-bindings/gpio/gpio.h>
+
+&msmgpio {
+	msmgpio_1v8_supply: msmgpio_1v8_supply {
+		pinmux {
+			function = "gpio";
+			pins = "gpio106";
+		};
+
+		pinconf {
+			pins = "gpio106";
+			function = "gpio";
+			drive-strength = <16>;
+			bias-disable;
+			output-low;
+		};
+	};
+
+	msmgpio_2v8_supply: msmgpio_2v8_supply {
+		pinmux {
+			function = "gpio";
+			pins = "gpio2";
+		};
+
+		pinconf {
+			pins = "gpio2";
+			function = "gpio";
+			drive-strength = <16>;
+			bias-disable;
+			output-low;
+		};
+	};
+
+	msmgpio_3v3_supply: msmgpio_3v3_supply {
+		pinmux {
+			function = "gpio";
+			pins = "gpio112";
+		};
+
+		pinconf {
+			pins = "gpio112";
+			function = "gpio";
+			drive-strength = <16>;
+			bias-disable;
+			output-low;
+		};
+	};
+
+	msmgpio_display_supply: msmgpio_display_supply {
+		pinmux {
+			function = "gpio";
+			pins = "gpio3";
+		};
+
+		pinconf {
+			pins = "gpio3";
+			function = "gpio";
+			drive-strength = <16>;
+			bias-disable;
+			output-low;
+		};
+	};
+
+	msmgpio_audio_supply: msmgpio_audio_supply {
+		pinmux {
+			function = "gpio";
+			pins = "gpio110";
+		};
+
+		pinconf {
+			pins = "gpio110";
+			function = "gpio";
+			drive-strength = <16>;
+			bias-disable;
+			output-low;
+		};
+	};
+
+	msmgpio_gpio_poweroff: msmgpio_gpio_poweroff {
+		pinmux_gpio {
+			function = "gpio";
+			pins = "gpio62";
+		};
+
+		pinconf_gpio {
+			pins = "gpio62";
+			function = "gpio";
+			drive-strength = <16>;
+			bias-disable;
+			output-low;
+		};
+
+		// This is a hack - the MCU IRQ is used by userspace, so
+		// so it's not visible in the device tree.
+
+		pinmux_mcu_irq {
+			function = "gpio";
+			pins = "gpio8";
+		};
+
+		pinconf_mcu_irq {
+			pins = "gpio8";
+			function = "gpio";
+			drive-strength = <16>;
+			input-enable;
+			bias-pull-up;
+		};
+	};
+
+	msmgpio_wdt_gpio: msmgpio_wdt_gpio {
+		pinmux {
+			function = "gpio";
+			pins = "gpio52";
+		};
+
+		pinconf {
+			pins = "gpio52";
+			function = "gpio";
+			drive-strength = <16>;
+			bias-disable;
+			output-low;
+		};
+	};
+
+	msmgpio_lis331dlh: msmgpio_lis331dlh {
+		pinmux {
+			function = "gpio";
+			pins = "gpio105";
+		};
+
+		pinconf {
+			pins = "gpio105";
+			function = "gpio";
+			drive-strength = <8>;
+			input-enable;
+			bias-pull-up;
+		};
+	};
+
+	msmgpio_keys: msmgpio_keys {
+		pinmux {
+			function = "gpio";
+			pins = "gpio52";
+		};
+
+		pinconf {
+			pins = "gpio52";
+			function = "gpio";
+			drive-strength = <8>;
+			input-enable;
+			bias-pull-up;
+		};
+	};
+
+	msmgpio_rotary: msmgpio_rotary {
+		pinmux {
+			function = "gpio";
+			pins = "gpio24", "gpio25";
+		};
+
+		pinconf {
+			pins = "gpio24", "gpio25";
+			function = "gpio";
+			drive-strength = <8>;
+			input-enable;
+			bias-pull-up;
+		};
+	};
+
+	msmgpio_leds: msmgpio_leds {
+		pinmux {
+			function = "gpio";
+			pins = "gpio108";
+		};
+
+		pinconf {
+			pins = "gpio108";
+			function = "gpio";
+			drive-strength = <16>;
+			output-low;
+		};
+	};
+
+	usb_id_default: usb-id-default {
+		pinmux {
+			function = "gpio";
+			pins = "gpio121";
+		};
+
+		pinconf {
+			pins = "gpio121";
+			function = "gpio";
+			drive-strength = <8>;
+			input-enable;
+			bias-pull-up;
+		};
+	};
+
+	msmgpio_display: msmgpio_display {
+		pinmux {
+			function = "gpio";
+			pins = "gpio113";
+		};
+
+		pinconf {
+			// ENABLE
+			pins = "gpio113";
+			drive-strength = <8>;
+			output-high;
+		};
+	};
+
+	msmgpio_touch: msmgpio_touch {
+		pinmux {
+			function = "gpio";
+			pins = "gpio21", "gpio120";
+		};
+
+		pinconf {
+			// RESET
+			pins = "gpio120";
+			drive-strength = <8>;
+			output-low;
+		};
+
+		pinconf_irq {
+			// IRQ
+			pins = "gpio21";
+			drive-strength = <8>;
+			input-enable;
+			bias-pull-up;
+		};
+	};
+
+	msmgpio_cam0_clk: msmgpio_cam0_clk {
+		pinmux {
+			function = "gpio";
+			pins = "gpio30";
+		};
+ 
+		piconf {
+			pins = "gpio30";
+			drive-strength = <8>;
+			output-low;
+		};
+	};
+ 
+	msmgpio_cam1_clk: msmgpio_cam1_clk {
+		pinmux {
+			function = "gpio";
+			pins = "gpio29";
+		};
+ 
+		piconf {
+			pins = "gpio29";
+			drive-strength = <8>;
+			output-low;
+		};
+	};
+
+	msmgpio_cam0: msmgpio_cam0 {
+		pinmux_reset {
+			function = "gpio";
+			pins = "gpio35";
+		};
+
+		pinconf_reset {
+			// RESET
+			pins = "gpio35";
+			drive-strength = <8>;
+			output-low;
+		};
+
+		pinmux_pwdn {
+			function = "gpio";
+			pins = "gpio34";
+		};
+
+		pinconf_pwdn {
+			// PWDN
+			pins = "gpio34";
+			drive-strength = <8>;
+			output-high;
+		};
+	};
+
+	msmgpio_cam1: msmgpio_cam1 {
+		pinmux_reset {
+			function = "gpio";
+			pins = "gpio28";
+		};
+
+		pinconf_reset {
+			// RESET
+			pins = "gpio28";
+			drive-strength = <8>;
+			output-low;
+		};
+
+		pinmux_pwdn {
+			function = "gpio";
+			pins = "gpio109";
+		};
+
+		pinconf_pwdn {
+			// PWDN
+			pins = "gpio109";
+			drive-strength = <8>;
+			output-high;
+		};
+	};
+
+	msmgpio_spi_gpio: msmgpio_spi_gpio {
+		pinmux {
+			function = "gpio";
+			pins = "gpio16", "gpio17", "gpio18", "gpio19";
+		};
+
+		pinconf_input {
+			pins = "gpio17";
+			drive-strength = <8>;
+			input-enable;
+		};
+
+		pinconf_output {
+			pins = "gpio16", "gpio18", "gpio19";
+			drive-strength = <8>;
+			output-low;
+		};
+	};
+
+	msmgpio_st95hf: msmgpio_st95hf {
+		pinmux {
+			function = "gpio";
+			pins = "gpio107", "gpio9";
+		};
+
+		pinconf {
+			// ENABLE
+			pins = "gpio107";
+			drive-strength = <8>;
+			output-low;
+		};
+
+		pinconf_irq {
+			// IRQ
+			pins = "gpio9";
+			drive-strength = <8>;
+			input-enable;
+		};
+	};
+};
+
+&spi5_default {
+	pinmux_cs {
+		function = "blsp_spi5";
+	};
+};
+
