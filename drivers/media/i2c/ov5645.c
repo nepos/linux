@@ -98,7 +98,6 @@ struct ov5645 {
 	struct clk *xclk;
 
 	struct regulator *io_regulator;
-	struct regulator *core_regulator;
 	struct regulator *analog_regulator;
 
 	const struct ov5645_mode_info *current_mode;
@@ -560,12 +559,6 @@ static int ov5645_regulators_enable(struct ov5645 *ov5645)
 		goto err_disable_io;
 	}
 
-	ret = regulator_enable(ov5645->core_regulator);
-	if (ret) {
-		dev_err(ov5645->dev, "set core voltage failed\n");
-		goto err_disable_analog;
-	}
-
 	return 0;
 
 err_disable_analog:
@@ -579,10 +572,6 @@ err_disable_io:
 static void ov5645_regulators_disable(struct ov5645 *ov5645)
 {
 	int ret;
-
-	ret = regulator_disable(ov5645->core_regulator);
-	if (ret < 0)
-		dev_err(ov5645->dev, "core regulator disable failed\n");
 
 	ret = regulator_disable(ov5645->analog_regulator);
 	if (ret < 0)
@@ -1219,20 +1208,6 @@ static int ov5645_probe(struct i2c_client *client,
 				    OV5645_VOLTAGE_DIGITAL_IO);
 	if (ret < 0) {
 		dev_err(dev, "cannot set io voltage\n");
-		return ret;
-	}
-
-	ov5645->core_regulator = devm_regulator_get(dev, "vddd");
-	if (IS_ERR(ov5645->core_regulator)) {
-		dev_err(dev, "cannot get core regulator\n");
-		return PTR_ERR(ov5645->core_regulator);
-	}
-
-	ret = regulator_set_voltage(ov5645->core_regulator,
-				    OV5645_VOLTAGE_DIGITAL_CORE,
-				    OV5645_VOLTAGE_DIGITAL_CORE);
-	if (ret < 0) {
-		dev_err(dev, "cannot set core voltage\n");
 		return ret;
 	}
 
