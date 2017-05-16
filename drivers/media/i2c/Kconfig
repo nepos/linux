@@ -781,6 +781,15 @@ config VIDEO_M52790
 
 	 To compile this driver as a module, choose M here: the
 	 module will be called m52790.
+
+config VIDEO_DW9800
+	tristate "Dongwoon DW9800W focus motor driver"
+	depends on VIDEO_V4L2 && I2C
+	---help---
+	 Support for the Dongwoon DW9800W focus motor driver
+
+	 To compile this driver as a module, choose M here: the
+	 module will be called dw9800.
 endmenu
 
 menu "Sensors used on soc_camera driver"
