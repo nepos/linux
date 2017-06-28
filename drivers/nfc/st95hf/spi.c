@@ -138,12 +138,14 @@ int st95hf_spi_recv_response(struct st95hf_spi_context *spicontext,
 EXPORT_SYMBOL_GPL(st95hf_spi_recv_response);
 
 int st95hf_spi_recv_echo_res(struct st95hf_spi_context *spicontext,
-			     unsigned char *receivebuff)
+			     unsigned char *echo_response)
 {
-	unsigned char readdata_cmd = ST95HF_COMMAND_RECEIVE;
-	struct spi_transfer t[2] = {
-		{.tx_buf = &readdata_cmd, .len = 1,},
-		{.rx_buf = receivebuff, .len = 1,},
+	unsigned char tx_buf[2] = { ST95HF_COMMAND_RECEIVE, 0x00 };
+	unsigned char rx_buf[2];
+	struct spi_transfer t = {
+		.tx_buf = tx_buf,
+		.rx_buf = rx_buf,
+		.len = 2,
 	};
 	struct spi_message m;
 	struct spi_device *spidev = spicontext->spidev;
@@ -152,15 +154,16 @@ int st95hf_spi_recv_echo_res(struct st95hf_spi_context *spicontext,
 	mutex_lock(&spicontext->spi_lock);
 
 	spi_message_init(&m);
-	spi_message_add_tail(&t[0], &m);
-	spi_message_add_tail(&t[1], &m);
+	spi_message_add_tail(&t, &m);
 	ret = spi_sync(spidev, &m);
 
 	mutex_unlock(&spicontext->spi_lock);
 
-	if (ret)
+	if (ret < 0)
 		dev_err(&spidev->dev, "recv_echo_res, data read error = %d\n",
 			ret);
+	else
+		*echo_response = rx_buf[1];
 
 	return ret;
 }
