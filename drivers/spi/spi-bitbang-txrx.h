@@ -63,13 +63,13 @@ bitbang_txrx_be_cpha0(struct spi_device *spi,
 		}
 		spidelay(nsecs);	/* T(setup) */
 
-		setsck(spi, !cpol);
-		spidelay(nsecs);
-
 		/* sample MSB (from slave) on leading edge */
 		word <<= 1;
 		if ((flags & SPI_MASTER_NO_RX) == 0)
 			word |= getmiso(spi);
+		setsck(spi, !cpol);
+
+		spidelay(nsecs);
 		setsck(spi, cpol);
 	}
 	return word;
