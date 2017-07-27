@@ -1007,7 +1007,6 @@ static int edt_ft5x06_ts_probe(struct i2c_client *client,
 		goto err_remove_attrs;
 
 	edt_ft5x06_ts_prepare_debugfs(tsdata, dev_driver_string(&client->dev));
-	device_init_wakeup(&client->dev, 1);
 
 	dev_dbg(&client->dev,
 		"EDT FT5x06 initialized: IRQ %d, WAKE pin %d, Reset pin %d.\n",

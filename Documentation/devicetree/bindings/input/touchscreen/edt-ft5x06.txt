@@ -52,6 +52,8 @@ Optional properties:
  - touchscreen-inverted-y  : See touchscreen.txt
  - touchscreen-swapped-x-y : See touchscreen.txt
 
+ - wakeup-source: touchscreen acts as wakeup source
+
 Example:
 	polytouch: edt-ft5x06@38 {
 		compatible = "edt,edt-ft5406", "edt,edt-ft5x06";
@@ -62,4 +64,5 @@ Example:
 		interrupts = <5 IRQ_TYPE_EDGE_FALLING>;
 		reset-gpios = <&gpio2 6 GPIO_ACTIVE_LOW>;
 		wake-gpios = <&gpio4 9 GPIO_ACTIVE_HIGH>;
+		wakeup-source;
 	};
