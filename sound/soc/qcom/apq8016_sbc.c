@@ -19,6 +19,8 @@
 #include <linux/of.h>
 #include <linux/clk.h>
 #include <linux/platform_device.h>
+#include <linux/regulator/consumer.h>
+#include <linux/gpio/consumer.h>
 #include <sound/pcm.h>
 #include <sound/pcm_params.h>
 #include <sound/jack.h>
@@ -31,6 +33,9 @@ struct apq8016_sbc_data {
 	void __iomem *spkr_iomux;
 	struct snd_soc_jack jack;
 	bool jack_setup;
+	bool amp_enabled;
+	struct regulator *amp_reg;
+	struct gpio_desc *amp_enable;
 	struct snd_soc_dai_link dai_link[];	/* dynamically allocated */
 };
 
@@ -45,14 +50,59 @@ static const struct snd_soc_dapm_widget msm8x16_dapm_widgets[] = {
 	SND_SOC_DAPM_MIC("Digital Mic2", NULL),
 };
 
+#define DEFAULT_MCLK_RATE	9600000
+
+static int apq8016_set_amplifier(struct apq8016_sbc_data *data, bool on)
+{
+	int ret;
+
+	printk(KERN_ERR "%s() :%d setting mp %d\n", __func__, __LINE__, on);
+
+	if (data->amp_enabled == on)
+		return 0;
+
+	if (data->amp_reg) {
+		if (on)
+			ret = regulator_enable(data->amp_reg);
+		else
+			ret = regulator_disable(data->amp_reg);
+
+		if (ret < 0)
+			return ret;
+	}
+
+	if (data->amp_enable)
+		gpiod_set_value_cansleep(data->amp_enable, on);
+
+	data->amp_enabled = on;
+
+	return 0;
+}
+
+static int apq8016_jack_event(struct notifier_block *nb,
+			      unsigned long event, void *data)
+{
+	struct snd_soc_jack *jack = (struct snd_soc_jack *)data;
+	struct apq8016_sbc_data *pdata = snd_soc_card_get_drvdata(jack->card);
+
+	apq8016_set_amplifier(pdata, !(event & SND_JACK_HEADSET));
+
+	return 0;
+}
+
+static struct notifier_block apq8016_jack_nb = {
+	.notifier_call = apq8016_jack_event,
+};
+
 static int apq8016_sbc_dai_init(struct snd_soc_pcm_runtime *rtd)
 {
 	struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
 	struct snd_soc_card *card = rtd->card;
 	struct snd_soc_codec *codec = rtd->codec;
+	struct snd_soc_dai_link *dai_link = rtd->dai_link;
 	struct snd_soc_dapm_context *dapm = snd_soc_codec_get_dapm(codec);
 	struct apq8016_sbc_data *pdata = snd_soc_card_get_drvdata(card);
-	int rval = 0;
+	int i, rval = 0;
 
 	switch (cpu_dai->id) {
 	case MI2S_PRIMARY:
@@ -80,9 +130,12 @@ static int apq8016_sbc_dai_init(struct snd_soc_pcm_runtime *rtd)
 
 	}
 	snd_soc_dapm_new_controls(dapm, msm8x16_dapm_widgets,
-				ARRAY_SIZE(msm8x16_dapm_widgets));
+				  ARRAY_SIZE(msm8x16_dapm_widgets));
 
 	snd_soc_dapm_sync(dapm);
+
+	// FIXME: move this to DAPM!
+	apq8016_set_amplifier(pdata, true);
 
 	if (!pdata->jack_setup) {
 		struct snd_jack *jack;
@@ -102,6 +155,8 @@ static int apq8016_sbc_dai_init(struct snd_soc_pcm_runtime *rtd)
 
 		jack = pdata->jack.jack;
 
+		snd_soc_jack_notifier_register(&pdata->jack, &apq8016_jack_nb);
+
 		snd_jack_set_key(jack, SND_JACK_BTN_0, KEY_MEDIA);
 		snd_jack_set_key(jack, SND_JACK_BTN_1, KEY_VOICECOMMAND);
 		snd_jack_set_key(jack, SND_JACK_BTN_2, KEY_VOLUMEUP);
@@ -109,10 +164,23 @@ static int apq8016_sbc_dai_init(struct snd_soc_pcm_runtime *rtd)
 		pdata->jack_setup = true;
 	}
 
-	rval = snd_soc_codec_set_jack(codec, &pdata->jack, NULL);
-	if (rval != 0 && rval != -ENOTSUPP) {
-		dev_warn(card->dev, "Failed to set jack: %d\n", rval);
-		return rval;
+	for (i = 0 ; i < dai_link->num_codecs; i++) {
+		struct snd_soc_dai *dai = rtd->codec_dais[i];
+
+		codec = dai->codec;
+		/* Set default mclk for internal codec */
+		rval = snd_soc_codec_set_sysclk(codec, 0, 0, DEFAULT_MCLK_RATE,
+				       SND_SOC_CLOCK_IN);
+		if (rval != 0 && rval != -ENOTSUPP) {
+			dev_warn(card->dev, "Failed to set mclk: %d\n", rval);
+			return rval;
+		}
+
+		rval = snd_soc_codec_set_jack(codec, &pdata->jack, NULL);
+		if (rval != 0 && rval != -ENOTSUPP) {
+			dev_warn(card->dev, "Failed to set jack: %d\n", rval);
+			//return rval;
+		}
 	}
 
 	return rval;
@@ -194,6 +262,15 @@ static struct apq8016_sbc_data *apq8016_sbc_parse_of(struct snd_soc_card *card)
 		link->init = apq8016_sbc_dai_init;
 		link++;
 	}
+
+	data->amp_enable = devm_gpiod_get_optional(dev, "amp-enable",
+						   GPIOD_OUT_LOW);
+	if (IS_ERR(data->amp_enable))
+		return ERR_CAST(data->amp_enable);
+
+	data->amp_reg = devm_regulator_get_optional(dev, "amp");
+	if (IS_ERR(data->amp_reg))
+		return ERR_CAST(data->amp_reg);
 
 	return data;
 }
