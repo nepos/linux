@@ -106,6 +106,8 @@
 	               reg-names = "pmic-codec-core";
 	               clocks = <&gcc GCC_CODEC_DIGCODEC_CLK>;
 	               clock-names = "mclk";
+		       qcom,mbhc-vthreshold-low = <75 150 237 450 500>;
+		       qcom,mbhc-vthreshold-high = <75 150 237 450 500>;
 	               interrupt-parent = <&spmi_bus>;
 	               interrupts = <0x1 0xf0 0x0 IRQ_TYPE_NONE>,
 	                            <0x1 0xf0 0x1 IRQ_TYPE_NONE>,
