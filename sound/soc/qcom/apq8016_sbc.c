@@ -19,6 +19,8 @@
 #include <linux/of.h>
 #include <linux/clk.h>
 #include <linux/platform_device.h>
+#include <linux/regulator/consumer.h>
+#include <linux/gpio/consumer.h>
 #include <sound/pcm.h>
 #include <sound/pcm_params.h>
 #include <sound/jack.h>
@@ -31,6 +33,11 @@ struct apq8016_sbc_data {
 	void __iomem *spkr_iomux;
 	struct snd_soc_jack jack;
 	bool jack_setup;
+	bool amp_enabled;
+	bool dapm_on;
+	bool headphones_connected;
+	struct regulator *amp_reg;
+	struct gpio_desc *amp_enable;
 	struct snd_soc_dai_link dai_link[];	/* dynamically allocated */
 };
 
@@ -39,6 +46,53 @@ struct apq8016_sbc_data {
 #define MIC_CTRL_TLMM_SCLK_EN		BIT(1)
 #define	SPKR_CTL_PRI_WS_SLAVE_SEL_11	(BIT(17) | BIT(16))
 #define DEFAULT_MCLK_RATE		9600000
+
+static int apq8016_set_amplifier(struct apq8016_sbc_data *data)
+{
+	int ret;
+	bool on;
+
+	on = data->dapm_on && !data->headphones_connected;
+
+	printk(KERN_ERR "%s() :%d DAPM %d, Headphones %d -> %d (current %d)\n", __func__, __LINE__,
+		data->dapm_on, data->headphones_connected, on, data->amp_enabled);
+
+	if (data->amp_enabled == on)
+		return 0;
+
+	if (on) {
+		ret = regulator_enable(data->amp_reg);
+		usleep_range(5000, 10000);
+		gpiod_set_value_cansleep(data->amp_enable, 1);
+	} else {
+		gpiod_set_value_cansleep(data->amp_enable, 0);
+		usleep_range(5000, 10000);
+		ret = regulator_disable(data->amp_reg);
+	}
+
+	if (ret < 0)
+		return ret;
+
+	data->amp_enabled = on;
+
+	return 0;
+}
+
+static int apq8016_jack_event(struct notifier_block *nb,
+			      unsigned long event, void *jdata)
+{
+	struct snd_soc_jack *jack = (struct snd_soc_jack *)jdata;
+	struct apq8016_sbc_data *data = snd_soc_card_get_drvdata(jack->card);
+
+	data->headphones_connected = event & SND_JACK_HEADSET;
+	apq8016_set_amplifier(data);
+
+	return 0;
+}
+
+static struct notifier_block apq8016_jack_nb = {
+	.notifier_call = apq8016_jack_event,
+};
 
 static int apq8016_sbc_dai_init(struct snd_soc_pcm_runtime *rtd)
 {
@@ -92,6 +146,8 @@ static int apq8016_sbc_dai_init(struct snd_soc_pcm_runtime *rtd)
 
 		jack = pdata->jack.jack;
 
+		snd_soc_jack_notifier_register(&pdata->jack, &apq8016_jack_nb);
+
 		snd_jack_set_key(jack, SND_JACK_BTN_0, KEY_MEDIA);
 		snd_jack_set_key(jack, SND_JACK_BTN_1, KEY_VOICECOMMAND);
 		snd_jack_set_key(jack, SND_JACK_BTN_2, KEY_VOLUMEUP);
@@ -110,12 +166,24 @@ static int apq8016_sbc_dai_init(struct snd_soc_pcm_runtime *rtd)
 			dev_warn(card->dev, "Failed to set mclk: %d\n", rval);
 			return rval;
 		}
+
 		rval = snd_soc_codec_set_jack(codec, &pdata->jack, NULL);
 		if (rval != 0 && rval != -ENOTSUPP) {
 			dev_warn(card->dev, "Failed to set jack: %d\n", rval);
 			return rval;
 		}
 	}
+
+	return 0;
+}
+
+static int apq8016_sbc_dapm_amp_event(struct snd_soc_dapm_widget *w,
+				      struct snd_kcontrol *k, int event)
+{
+	struct apq8016_sbc_data *data = snd_soc_card_get_drvdata(w->dapm->card);
+
+	data->dapm_on = SND_SOC_DAPM_EVENT_ON(event);
+	apq8016_set_amplifier(data);
 
 	return 0;
 }
@@ -197,6 +265,15 @@ static struct apq8016_sbc_data *apq8016_sbc_parse_of(struct snd_soc_card *card)
 		link++;
 	}
 
+	data->amp_enable = devm_gpiod_get_optional(dev, "amp-enable",
+						   GPIOD_OUT_LOW);
+	if (IS_ERR(data->amp_enable))
+		return ERR_CAST(data->amp_enable);
+
+	data->amp_reg = devm_regulator_get_optional(dev, "amp");
+	if (IS_ERR(data->amp_reg))
+		return ERR_CAST(data->amp_reg);
+
 	return data;
 }
 
@@ -207,6 +284,7 @@ static const struct snd_soc_dapm_widget apq8016_sbc_dapm_widgets[] = {
 	SND_SOC_DAPM_MIC("Secondary Mic", NULL),
 	SND_SOC_DAPM_MIC("Digital Mic1", NULL),
 	SND_SOC_DAPM_MIC("Digital Mic2", NULL),
+	SND_SOC_DAPM_SPK("Ext Spk", apq8016_sbc_dapm_amp_event),
 };
 
 static int apq8016_sbc_platform_probe(struct platform_device *pdev)
