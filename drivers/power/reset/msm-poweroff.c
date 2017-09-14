@@ -55,7 +55,7 @@ static int msm_restart_probe(struct platform_device *pdev)
 
 	register_restart_handler(&restart_nb);
 
-	pm_power_off = do_msm_poweroff;
+	//pm_power_off = do_msm_poweroff;
 
 	return 0;
 }
