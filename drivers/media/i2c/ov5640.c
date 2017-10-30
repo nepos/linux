@@ -80,6 +80,20 @@
 #define OV5640_REG_SDE_CTRL5		0x5585
 #define OV5640_REG_AVG_READOUT		0x56a1
 
+#define OV5640_LINK_FREQ_111	0
+#define OV5640_LINK_FREQ_166	1
+#define OV5640_LINK_FREQ_222	2
+#define OV5640_LINK_FREQ_333	3
+#define OV5640_LINK_FREQ_666	4
+
+static const s64 link_freq_menu_items[] = {
+	111066666,
+	166600000,
+	222133333,
+	332200000,
+	666400000,
+};
+
 enum ov5640_mode_id {
 	OV5640_MODE_QCIF_176_144 = 0,
 	OV5640_MODE_QVGA_320_240,
@@ -143,12 +157,18 @@ struct ov5640_mode_info {
 	enum ov5640_downsize_mode dn_mode;
 	u32 width;
 	u32 height;
+	u32 pixel_rate;
+	u32 link_freq_idx;
 	const struct reg_value *reg_data;
 	u32 reg_data_size;
 };
 
 struct ov5640_ctrls {
 	struct v4l2_ctrl_handler handler;
+	struct {
+		struct v4l2_ctrl *link_freq;
+		struct v4l2_ctrl *pixel_rate;
+	};
 	struct {
 		struct v4l2_ctrl *auto_exp;
 		struct v4l2_ctrl *exposure;
@@ -710,6 +730,8 @@ static const struct ov5640_mode_info ov5640_mode_init_data = {
 	.dn_mode	= SUBSAMPLING,
 	.width		= 640,
 	.height		= 480,
+	.pixel_rate	= 27766666,
+	.link_freq_idx	= OV5640_LINK_FREQ_111,
 	.reg_data	= ov5640_init_setting_30fps_VGA,
 	.reg_data_size	= ARRAY_SIZE(ov5640_init_setting_30fps_VGA),
 };
@@ -722,6 +744,8 @@ ov5640_mode_data[OV5640_NUM_FRAMERATES][OV5640_NUM_MODES] = {
 		.dn_mode	= SUBSAMPLING,
 		.width		= 176,
 		.height		= 144,
+		.pixel_rate	= 27766666,
+		.link_freq_idx	= OV5640_LINK_FREQ_111,
 		.reg_data	= ov5640_setting_15fps_QCIF_176_144,
 		.reg_data_size	= ARRAY_SIZE(ov5640_setting_15fps_QCIF_176_144),
 	},
@@ -730,6 +754,8 @@ ov5640_mode_data[OV5640_NUM_FRAMERATES][OV5640_NUM_MODES] = {
 		.dn_mode	= SUBSAMPLING,
 		.width		= 320,
 		.height		= 240,
+		.pixel_rate	= 27766666,
+		.link_freq_idx	= OV5640_LINK_FREQ_111,
 		.reg_data	= ov5640_setting_15fps_QVGA_320_240,
 		.reg_data_size	= ARRAY_SIZE(ov5640_setting_15fps_QVGA_320_240),
 	},
@@ -738,6 +764,8 @@ ov5640_mode_data[OV5640_NUM_FRAMERATES][OV5640_NUM_MODES] = {
 		.dn_mode	= SUBSAMPLING,
 		.width		= 640,
 		.height		= 480,
+		.pixel_rate	= 27766666,
+		.link_freq_idx	= OV5640_LINK_FREQ_111,
 		.reg_data	= ov5640_setting_15fps_VGA_640_480,
 		.reg_data_size	= ARRAY_SIZE(ov5640_setting_15fps_VGA_640_480)
 	},
@@ -746,6 +774,8 @@ ov5640_mode_data[OV5640_NUM_FRAMERATES][OV5640_NUM_MODES] = {
 		.dn_mode	= SUBSAMPLING,
 		.width		= 720,
 		.height		= 480,
+		.pixel_rate	= 27766666,
+		.link_freq_idx	= OV5640_LINK_FREQ_111,
 		.reg_data	= ov5640_setting_15fps_NTSC_720_480,
 		.reg_data_size	= ARRAY_SIZE(ov5640_setting_15fps_NTSC_720_480),
 	},
@@ -754,6 +784,8 @@ ov5640_mode_data[OV5640_NUM_FRAMERATES][OV5640_NUM_MODES] = {
 		.dn_mode	= SUBSAMPLING,
 		.width		= 720,
 		.height		= 576,
+		.pixel_rate	= 27766666,
+		.link_freq_idx	= OV5640_LINK_FREQ_111,
 		.reg_data	= ov5640_setting_15fps_PAL_720_576,
 		.reg_data_size	= ARRAY_SIZE(ov5640_setting_15fps_PAL_720_576),
 	},
@@ -762,6 +794,8 @@ ov5640_mode_data[OV5640_NUM_FRAMERATES][OV5640_NUM_MODES] = {
 		.dn_mode	= SUBSAMPLING,
 		.width		= 1024,
 		.height		= 768,
+		.pixel_rate	= 27766666,
+		.link_freq_idx	= OV5640_LINK_FREQ_111,
 		.reg_data	= ov5640_setting_15fps_XGA_1024_768,
 		.reg_data_size	= ARRAY_SIZE(ov5640_setting_15fps_XGA_1024_768),
 	},
@@ -770,6 +804,8 @@ ov5640_mode_data[OV5640_NUM_FRAMERATES][OV5640_NUM_MODES] = {
 		.dn_mode	= SUBSAMPLING,
 		.width		= 1280,
 		.height		= 720,
+		.pixel_rate	= 41650000,
+		.link_freq_idx	= OV5640_LINK_FREQ_166,
 		.reg_data	= ov5640_setting_15fps_720P_1280_720,
 		.reg_data_size	= ARRAY_SIZE(ov5640_setting_15fps_720P_1280_720),
 	},
@@ -778,6 +814,8 @@ ov5640_mode_data[OV5640_NUM_FRAMERATES][OV5640_NUM_MODES] = {
 		.dn_mode	= SCALING,
 		.width		= 1920,
 		.height		= 1080,
+		.pixel_rate	= 83300000,
+		.link_freq_idx	= OV5640_LINK_FREQ_333,
 		.reg_data	= ov5640_setting_15fps_1080P_1920_1080,
 		.reg_data_size	= ARRAY_SIZE(ov5640_setting_15fps_1080P_1920_1080),
 	},
@@ -786,6 +824,8 @@ ov5640_mode_data[OV5640_NUM_FRAMERATES][OV5640_NUM_MODES] = {
 		.dn_mode	= SCALING,
 		.width		= 2592,
 		.height		= 1944,
+		.pixel_rate	= 83300000,
+		.link_freq_idx	= OV5640_LINK_FREQ_333,
 		.reg_data	= ov5640_setting_15fps_QSXGA_2592_1944,
 		.reg_data_size	= ARRAY_SIZE(ov5640_setting_15fps_QSXGA_2592_1944),
 	},
@@ -796,6 +836,8 @@ ov5640_mode_data[OV5640_NUM_FRAMERATES][OV5640_NUM_MODES] = {
 		.dn_mode	= SUBSAMPLING,
 		.width		= 176,
 		.height		= 144,
+		.pixel_rate	= 27766666,
+		.link_freq_idx	= OV5640_LINK_FREQ_111,
 		.reg_data	= ov5640_setting_30fps_QCIF_176_144,
 		.reg_data_size	= ARRAY_SIZE(ov5640_setting_30fps_QCIF_176_144),
 	},
@@ -804,6 +846,8 @@ ov5640_mode_data[OV5640_NUM_FRAMERATES][OV5640_NUM_MODES] = {
 		.dn_mode	= SUBSAMPLING,
 		.width		= 320,
 		.height		= 240,
+		.pixel_rate	= 27766666,
+		.link_freq_idx	= OV5640_LINK_FREQ_111,
 		.reg_data	= ov5640_setting_30fps_QVGA_320_240,
 		.reg_data_size	= ARRAY_SIZE(ov5640_setting_30fps_QVGA_320_240),
 	},
@@ -812,6 +856,8 @@ ov5640_mode_data[OV5640_NUM_FRAMERATES][OV5640_NUM_MODES] = {
 		.dn_mode	= SUBSAMPLING,
 		.width		= 640,
 		.height		= 480,
+		.pixel_rate	= 27766666,
+		.link_freq_idx	= OV5640_LINK_FREQ_111,
 		.reg_data	= ov5640_setting_30fps_VGA_640_480,
 		.reg_data_size	= ARRAY_SIZE(ov5640_setting_30fps_VGA_640_480),
 	},
@@ -820,6 +866,8 @@ ov5640_mode_data[OV5640_NUM_FRAMERATES][OV5640_NUM_MODES] = {
 		.dn_mode	= SUBSAMPLING,
 		.width		= 720,
 		.height		= 480,
+		.pixel_rate	= 55533333,
+		.link_freq_idx	= OV5640_LINK_FREQ_222,
 		.reg_data	= ov5640_setting_30fps_NTSC_720_480,
 		.reg_data_size	= ARRAY_SIZE(ov5640_setting_30fps_NTSC_720_480),
 	},
@@ -828,6 +876,8 @@ ov5640_mode_data[OV5640_NUM_FRAMERATES][OV5640_NUM_MODES] = {
 		.dn_mode	= SUBSAMPLING,
 		.width		= 720,
 		.height		= 576,
+		.pixel_rate	= 55533333,
+		.link_freq_idx	= OV5640_LINK_FREQ_222,
 		.reg_data	= ov5640_setting_30fps_PAL_720_576,
 		.reg_data_size	= ARRAY_SIZE(ov5640_setting_30fps_PAL_720_576),
 	},
@@ -836,6 +886,8 @@ ov5640_mode_data[OV5640_NUM_FRAMERATES][OV5640_NUM_MODES] = {
 		.dn_mode	= SUBSAMPLING,
 		.width		= 1024,
 		.height		= 768,
+		.pixel_rate	= 55533333,
+		.link_freq_idx	= OV5640_LINK_FREQ_222,
 		.reg_data	= ov5640_setting_30fps_XGA_1024_768,
 		.reg_data_size	= ARRAY_SIZE(ov5640_setting_30fps_XGA_1024_768),
 	},
@@ -844,6 +896,8 @@ ov5640_mode_data[OV5640_NUM_FRAMERATES][OV5640_NUM_MODES] = {
 		.dn_mode	= SUBSAMPLING,
 		.width		= 1280,
 		.height		= 720,
+		.pixel_rate	= 83300000,
+		.link_freq_idx	= OV5640_LINK_FREQ_333,
 		.reg_data	= ov5640_setting_30fps_720P_1280_720,
 		.reg_data_size	= ARRAY_SIZE(ov5640_setting_30fps_720P_1280_720),
 	},
@@ -852,6 +906,8 @@ ov5640_mode_data[OV5640_NUM_FRAMERATES][OV5640_NUM_MODES] = {
 		.dn_mode	= SCALING,
 		.width		= 1920,
 		.height		= 1080,
+		.pixel_rate	= 166600000,
+		.link_freq_idx	= OV5640_LINK_FREQ_666,
 		.reg_data	= ov5640_setting_30fps_1080P_1920_1080,
 		.reg_data_size	= ARRAY_SIZE(ov5640_setting_30fps_1080P_1920_1080),
 	},
@@ -860,6 +916,8 @@ ov5640_mode_data[OV5640_NUM_FRAMERATES][OV5640_NUM_MODES] = {
 		.dn_mode	= -1,
 		.width		= 0,
 		.height		= 0,
+		.pixel_rate	= 0,
+		.link_freq_idx	= 0,
 		.reg_data	= NULL,
 		.reg_data_size	= 0,
 	}
@@ -1838,6 +1896,11 @@ static int ov5640_set_fmt(struct v4l2_subdev *sd,
 	sensor->current_mode = new_mode;
 	sensor->fmt = format->format;
 	sensor->pending_mode_change = true;
+
+	__v4l2_ctrl_s_ctrl(sensor->ctrls.link_freq, new_mode->link_freq_idx);
+	__v4l2_ctrl_s_ctrl_int64(sensor->ctrls.pixel_rate,
+				 new_mode->pixel_rate);
+
 out:
 	mutex_unlock(&sensor->lock);
 	return ret;
@@ -2084,6 +2147,20 @@ static int ov5640_init_controls(struct ov5640_dev *sensor)
 
 	/* we can use our own mutex for the ctrl lock */
 	hdl->lock = &sensor->lock;
+
+	/* Clock related controls */
+	ctrls->link_freq =
+		v4l2_ctrl_new_int_menu(hdl, ops,
+				       V4L2_CID_LINK_FREQ,
+				       ARRAY_SIZE(link_freq_menu_items) - 1,
+				       0, link_freq_menu_items);
+	ctrls->link_freq->flags |= V4L2_CTRL_FLAG_READ_ONLY;
+
+	ctrls->pixel_rate =
+		v4l2_ctrl_new_std(hdl, ops,
+				  V4L2_CID_PIXEL_RATE, 0, INT_MAX, 1,
+				  ov5640_mode_init_data.pixel_rate);
+	ctrls->pixel_rate->flags |= V4L2_CTRL_FLAG_READ_ONLY;
 
 	/* Auto/manual white balance */
 	ctrls->auto_wb = v4l2_ctrl_new_std(hdl, ops,
