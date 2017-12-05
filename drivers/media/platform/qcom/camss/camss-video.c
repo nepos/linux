@@ -728,10 +728,34 @@ static const struct v4l2_ioctl_ops msm_vid_ioctl_ops = {
  * V4L2 file operations
  */
 
+static struct media_entity *video_find_sensor(struct camss_video *video)
+{
+	struct media_pad *pad = &video->pad;
+
+	while (1) {
+		struct media_entity *entity;
+
+		if (!(pad->flags & MEDIA_PAD_FL_SINK))
+			return NULL;
+
+		pad = media_entity_remote_pad(pad);
+		if (!pad || !is_media_entity_v4l2_subdev(pad->entity))
+			return NULL;
+
+		entity = pad->entity;
+
+		if (entity->function == MEDIA_ENT_F_CAM_SENSOR)
+			return entity;
+
+		pad = &entity->pads[0];
+	}
+}
+
 static int video_open(struct file *file)
 {
 	struct video_device *vdev = video_devdata(file);
 	struct camss_video *video = video_drvdata(file);
+	struct media_entity *sensor_entity;
 	struct v4l2_fh *vfh;
 	int ret;
 
@@ -747,6 +771,14 @@ static int video_open(struct file *file)
 	v4l2_fh_add(vfh);
 
 	file->private_data = vfh;
+
+	sensor_entity = video_find_sensor(video);
+	if (sensor_entity) {
+		struct v4l2_subdev *sd =
+			media_entity_to_v4l2_subdev(sensor_entity);
+
+		vdev->ctrl_handler = sd->ctrl_handler;
+	}
 
 	ret = v4l2_pipeline_pm_use(&vdev->entity, 1);
 	if (ret < 0) {
