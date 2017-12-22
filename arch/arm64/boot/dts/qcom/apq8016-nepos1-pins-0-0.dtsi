@@ -233,32 +233,6 @@
 		};
 	};
 
-	msmgpio_cam0_clk: msmgpio_cam0_clk {
-		pinmux {
-			function = "gpio";
-			pins = "gpio30";
-		};
-
-		piconf {
-			pins = "gpio30";
-			drive-strength = <8>;
-			output-low;
-		};
-	};
-
-	msmgpio_cam1_clk: msmgpio_cam1_clk {
-		pinmux {
-			function = "gpio";
-			pins = "gpio29";
-		};
-
-		piconf {
-			pins = "gpio29";
-			drive-strength = <8>;
-			output-low;
-		};
-	};
-
 	msmgpio_cam0: msmgpio_cam0 {
 		pinmux_reset {
 			function = "gpio";
@@ -282,6 +256,17 @@
 			pins = "gpio34";
 			drive-strength = <8>;
 			output-high;
+		};
+
+		pinmux_mclk0 {
+			function = "cam_mclk0";
+			pins = "gpio26";
+		};
+
+		pinconf_mclk0 {
+			pins = "gpio26";
+			drive-strength = <16>;
+			bias-disable;
 		};
 	};
 
@@ -308,6 +293,17 @@
 			pins = "gpio109";
 			drive-strength = <8>;
 			output-high;
+		};
+
+		pinmux_mclk1 {
+			function = "cam_mclk1";
+			pins = "gpio27";
+		};
+
+		pinconf_mclk1 {
+			pins = "gpio27";
+			drive-strength = <16>;
+			bias-disable;
 		};
 	};
 

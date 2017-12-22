@@ -315,22 +315,6 @@
 			default-state = "off";
 		};
 	};
-
-	cam0_clk: gpio-gate-clk@0 {
-		pinctrl-names = "default";
-		pinctrl-0 = <&msmgpio_cam0_clk>;
-		#clock-cells = <0>;
-		compatible = "gpio-gate-clk";
-		enable-gpios = <&msmgpio 30 GPIO_ACTIVE_HIGH>;
-	};
-
-	cam1_clk: gpio-gate-clk@1 {
-		pinctrl-names = "default";
-		pinctrl-0 = <&msmgpio_cam1_clk>;
-		#clock-cells = <0>;
-		compatible = "gpio-gate-clk";
-		enable-gpios = <&msmgpio 29 GPIO_ACTIVE_HIGH>;
-	};
 };
 
 &blsp_i2c2 {
@@ -386,8 +370,9 @@
 		pinctrl-names = "default";
 		pinctrl-0 = <&msmgpio_cam0>;
 
-		clocks = <&cam0_clk>;
+		clocks = <&gcc GCC_CAMSS_MCLK0_CLK>;
 		clock-names = "xclk";
+		clock-frequency = <23800000>;
 
 		powerdown-gpios = <&msmgpio 34 GPIO_ACTIVE_HIGH>;
 		reset-gpios = <&msmgpio 35 GPIO_ACTIVE_LOW>;
@@ -411,8 +396,9 @@
 		pinctrl-names = "default";
 		pinctrl-0 = <&msmgpio_cam1>;
 
-		clocks = <&cam1_clk>;
+		clocks = <&gcc GCC_CAMSS_MCLK1_CLK>;
 		clock-names = "xclk";
+		clock-frequency = <23880000>;
 
 		powerdown-gpios = <&msmgpio 109 GPIO_ACTIVE_HIGH>;
 		reset-gpios = <&msmgpio 28 GPIO_ACTIVE_LOW>;
