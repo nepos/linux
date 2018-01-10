@@ -289,6 +289,67 @@ out_unlock:
 }
 static DEVICE_ATTR_RW(edge);
 
+static ssize_t gpio_wakeup_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	ssize_t			status;
+	struct gpiod_data	*data = dev_get_drvdata(dev);
+	struct gpio_desc	*desc = data->desc;
+	int			irq = gpiod_to_irq(desc);
+	struct irq_desc		*irq_desc = irq_to_desc(irq);
+
+	mutex_lock(&sysfs_lock);
+
+	if (!irq_desc)
+		printk("#### 1\n");
+
+	if (!desc)
+		printk("#### 2\n");
+
+
+	if (irqd_is_wakeup_set(&irq_desc->irq_data))
+		status = sprintf(buf, "enabled\n");
+	else
+		status = sprintf(buf, "disabled\n");
+
+	mutex_unlock(&sysfs_lock);
+
+	return status;
+}
+
+static ssize_t gpio_wakeup_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t size)
+{
+	struct gpiod_data	*data = dev_get_drvdata(dev);
+	struct gpio_desc	*desc = data->desc;
+	int			ret;
+	unsigned int		on;
+	int			irq = gpiod_to_irq(desc);
+
+	mutex_lock(&sysfs_lock);
+
+	if (sysfs_streq("enabled", buf)) {
+		on = true;
+	} else if (sysfs_streq("disabled", buf)) {
+		on = false;
+	} else {
+		mutex_unlock(&sysfs_lock);
+		return -EINVAL;
+	}
+
+	ret = irq_set_irq_wake(irq, on);
+
+	mutex_unlock(&sysfs_lock);
+
+	if (ret)
+		pr_warn("%s: failed to %s wake\n", __func__,
+				on ? "enable" : "disable");
+
+	return size;
+}
+
+static DEVICE_ATTR(wakeup, 0644, gpio_wakeup_show, gpio_wakeup_store);
+
 /* Caller holds gpiod-data mutex. */
 static int gpio_sysfs_set_active_low(struct device *dev, int value)
 {
@@ -357,6 +418,7 @@ static umode_t gpio_is_visible(struct kobject *kobj, struct attribute *attr,
 	struct device *dev = container_of(kobj, struct device, kobj);
 	struct gpiod_data *data = dev_get_drvdata(dev);
 	struct gpio_desc *desc = data->desc;
+	struct irq_chip *irqchip = desc->gdev->chip->irqchip;
 	umode_t mode = attr->mode;
 	bool show_direction = data->direction_can_change;
 
@@ -368,6 +430,14 @@ static umode_t gpio_is_visible(struct kobject *kobj, struct attribute *attr,
 			mode = 0;
 		if (!show_direction && test_bit(FLAG_IS_OUT, &desc->flags))
 			mode = 0;
+	} else if (attr == &dev_attr_wakeup.attr) {
+		if (gpiod_to_irq(desc) < 0)
+			mode = 0;
+		if (!show_direction && test_bit(FLAG_IS_OUT, &desc->flags))
+			mode = 0;
+		if (!test_bit(IRQCHIP_SKIP_SET_WAKE, &irqchip->flags) && \
+				!irqchip->irq_set_wake)
+			mode = 0;
 	}
 
 	return mode;
@@ -378,6 +448,7 @@ static struct attribute *gpio_attrs[] = {
 	&dev_attr_edge.attr,
 	&dev_attr_value.attr,
 	&dev_attr_active_low.attr,
+	&dev_attr_wakeup.attr,
 	NULL,
 };
 
