@@ -169,6 +169,7 @@ struct msm_drm_private {
 	 * ioctl.
 	 */
 	struct task_struct *struct_mutex_task;
+	struct drm_atomic_state *pm_state;
 };
 
 struct msm_format {
