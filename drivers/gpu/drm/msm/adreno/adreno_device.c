@@ -239,6 +239,29 @@ static const struct of_device_id dt_match[] = {
 	{}
 };
 
+#ifdef CONFIG_PM
+static int adreno_resume(struct device *dev)
+{
+	struct platform_device *pdev = to_platform_device(dev);
+	struct msm_gpu *gpu = platform_get_drvdata(pdev);
+
+	return gpu->funcs->pm_resume(gpu);
+}
+
+static int adreno_suspend(struct device *dev)
+{
+	struct platform_device *pdev = to_platform_device(dev);
+	struct msm_gpu *gpu = platform_get_drvdata(pdev);
+
+	return gpu->funcs->pm_suspend(gpu);
+}
+#endif
+
+static const struct dev_pm_ops adreno_pm_ops = {
+	SET_SYSTEM_SLEEP_PM_OPS(pm_runtime_force_suspend, pm_runtime_force_resume)
+	SET_RUNTIME_PM_OPS(adreno_suspend, adreno_resume, NULL)
+};
+
 static struct platform_driver adreno_driver = {
 	.probe = adreno_probe,
 	.remove = adreno_remove,
