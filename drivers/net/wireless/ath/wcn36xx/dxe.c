@@ -513,7 +513,7 @@ static int wcn36xx_rx_handle_packets(struct wcn36xx *wcn,
 	struct wcn36xx_dxe_desc *dxe = ctl->desc;
 	dma_addr_t  dma_addr;
 	struct sk_buff *skb;
-	int ret = 0, int_mask;
+	int ret, int_mask;
 	u32 value;
 
 	if (ch->ch_type == WCN36XX_DXE_CH_RX_L) {
