@@ -276,6 +276,8 @@ static int wcn36xx_smd_send_and_wait(struct wcn36xx *wcn, size_t len)
 		    "SMD command (req %d, rsp %d) completed in %dms\n",
 		    req_type, hdr->msg_type,
 		    jiffies_to_msecs(jiffies - start));
+
+	mdelay(10);
 out:
 	return ret;
 }
