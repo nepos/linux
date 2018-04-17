@@ -138,7 +138,7 @@ void mdp5_pipe_release(struct drm_atomic_state *s, struct mdp5_hw_pipe *hwpipe)
 	if (!hwpipe)
 		return;
 
-	if (WARN_ON(!new_state->hwpipe_to_plane[hwpipe->idx]))
+	if (!new_state->hwpipe_to_plane[hwpipe->idx])
 		return;
 
 	DBG("%s: release from plane %s", hwpipe->name,
