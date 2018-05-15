@@ -3771,6 +3771,10 @@ static int ieee80211_auth(struct ieee80211_sub_if_data *sdata)
 		 */
 		cfg80211_unlink_bss(local->hw.wiphy, auth_data->bss);
 
+		// HACK
+		sdata_info(sdata, "Restarting hardware driver!\n");
+		ieee80211_restart_hw(&local->hw);
+
 		return -ETIMEDOUT;
 	}
 
@@ -3832,6 +3836,10 @@ static int ieee80211_do_assoc(struct ieee80211_sub_if_data *sdata)
 		 * bss struct for that AP.
 		 */
 		cfg80211_unlink_bss(local->hw.wiphy, assoc_data->bss);
+
+		// HACK
+		sdata_info(sdata, "Restarting hardware driver!\n");
+		ieee80211_restart_hw(&local->hw);
 
 		return -ETIMEDOUT;
 	}
