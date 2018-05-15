@@ -266,12 +266,17 @@ static void wcn36xx_feat_caps_info(struct wcn36xx *wcn)
 	}
 }
 
+static void wcn36xx_stop(struct ieee80211_hw *hw);
+
 static int wcn36xx_start(struct ieee80211_hw *hw)
 {
 	struct wcn36xx *wcn = hw->priv;
 	int ret;
 
 	wcn36xx_dbg(WCN36XX_DBG_MAC, "mac start\n");
+
+	if (wcn->hal_buf)
+		wcn36xx_stop(hw);
 
 	/* SMD initialization */
 	ret = wcn36xx_smd_open(wcn);
@@ -376,6 +381,7 @@ static void wcn36xx_stop(struct ieee80211_hw *hw)
 	wcn36xx_dxe_free_ctl_blks(wcn);
 
 	kfree(wcn->hal_buf);
+	wcn->hal_buf = NULL;
 }
 
 static int wcn36xx_config(struct ieee80211_hw *hw, u32 changed)
