@@ -1660,6 +1660,14 @@ static int ov5640_set_mode(struct ov5640_dev *sensor,
 
 	sensor->pending_mode_change = false;
 
+	/* HACK */
+	ret = __v4l2_ctrl_s_ctrl(sensor->ctrls.auto_gain, 1);
+	if (ret)
+		return ret;
+	ret = __v4l2_ctrl_s_ctrl(sensor->ctrls.auto_exp, V4L2_EXPOSURE_AUTO);
+	if (ret)
+		return ret;
+
 	return 0;
 }
 
