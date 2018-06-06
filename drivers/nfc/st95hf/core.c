@@ -220,8 +220,6 @@ struct st95_digital_cmd_complete_arg {
  *	from threaded ISR. Usage of this mutex avoids any race between
  *	deletion of the object from st95hf_remove() and its access from
  *	the threaded ISR.
- * @nfcdev_free: flag to have the state of nfc device object.
- *	[alive | died]
  * @current_protocol: current nfc protocol.
  * @current_rf_tech: current rf technology.
  * @fwi: frame waiting index, received in reply of RATS according to
@@ -237,7 +235,6 @@ struct st95hf_context {
 	unsigned char sendrcv_trflag;
 	struct semaphore exchange_lock;
 	struct mutex rm_lock;
-	bool nfcdev_free;
 	u8 current_protocol;
 	u8 current_rf_tech;
 	int fwi;
@@ -820,8 +817,8 @@ static irqreturn_t st95hf_irq_thread_handler(int irq, void  *st95hfcontext)
 		goto end;
 	}
 
-	/* if stcontext->nfcdev_free is true, it means remove already ran */
-	if (stcontext->nfcdev_free) {
+	/* if stcontext->ddev is %NULL, it means remove already ran */
+	if (!stcontext->ddev) {
 		result = -ENODEV;
 		goto end;
 	}
@@ -1220,7 +1217,7 @@ static int st95hf_remove(struct spi_device *nfc_spi_dev)
 
 	nfc_digital_unregister_device(stcontext->ddev);
 	nfc_digital_free_device(stcontext->ddev);
-	stcontext->nfcdev_free = true;
+	stcontext->ddev = NULL;
 
 	mutex_unlock(&stcontext->rm_lock);
 
