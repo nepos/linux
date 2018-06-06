@@ -863,7 +863,6 @@ static irqreturn_t st95hf_irq_thread_handler(int irq, void  *st95hfcontext)
 	return IRQ_HANDLED;
 
 end:
-	kfree_skb(skb_resp);
 	wtx = false;
 	cb_arg->rats = false;
 	skb_resp = ERR_PTR(result);
