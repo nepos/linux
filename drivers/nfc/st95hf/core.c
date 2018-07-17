@@ -45,10 +45,10 @@
 
 /* Command Send Interface */
 /* ST95HF_COMMAND_SEND CMD Ids */
-#define ECHO_CMD			0x55
-#define WRITE_REGISTER_CMD		0x9
 #define PROTOCOL_SELECT_CMD		0x2
 #define SEND_RECEIVE_CMD		0x4
+#define WRITE_REGISTER_CMD		0x9
+#define ECHO_CMD			0x55
 
 /* Select protocol codes */
 #define ISO15693_PROTOCOL_CODE		0x1
