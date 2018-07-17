@@ -47,8 +47,6 @@ int st95hf_spi_send(struct st95hf_spi_context *spicontext,
 
 	result = spi_sync(spidev, &m);
 	if (result) {
-		dev_err(&spidev->dev, "error: sending cmd to st95hf using SPI = %d\n",
-			result);
 		mutex_unlock(&spicontext->spi_lock);
 		return result;
 	}
@@ -62,12 +60,10 @@ int st95hf_spi_send(struct st95hf_spi_context *spicontext,
 	result = wait_for_completion_timeout(&spicontext->done,
 					     msecs_to_jiffies(1000));
 	/* check for timeout or success */
-	if (!result) {
-		dev_err(&spidev->dev, "error: response not ready timeout\n");
+	if (!result)
 		result = -ETIMEDOUT;
-	} else {
+	else
 		result = 0;
-	}
 
 	mutex_unlock(&spicontext->spi_lock);
 
@@ -79,7 +75,7 @@ EXPORT_SYMBOL_GPL(st95hf_spi_send);
 int st95hf_spi_recv_response(struct st95hf_spi_context *spicontext,
 			     unsigned char *receivebuff)
 {
-	int len = 0;
+	int ret, len;
 	struct spi_transfer tx_takedata;
 	struct spi_message m;
 	struct spi_device *spidev = spicontext->spidev;
@@ -88,8 +84,6 @@ int st95hf_spi_recv_response(struct st95hf_spi_context *spicontext,
 		{.tx_buf = &readdata_cmd, .len = 1,},
 		{.rx_buf = receivebuff, .len = 2, .cs_change = 1,},
 	};
-
-	int ret = 0;
 
 	memset(&tx_takedata, 0x0, sizeof(struct spi_transfer));
 
@@ -102,8 +96,6 @@ int st95hf_spi_recv_response(struct st95hf_spi_context *spicontext,
 
 	ret = spi_sync(spidev, &m);
 	if (ret) {
-		dev_err(&spidev->dev, "spi_recv_resp, data length error = %d\n",
-			ret);
 		mutex_unlock(&spicontext->spi_lock);
 		return ret;
 	}
@@ -127,11 +119,8 @@ int st95hf_spi_recv_response(struct st95hf_spi_context *spicontext,
 	ret = spi_sync(spidev, &m);
 
 	mutex_unlock(&spicontext->spi_lock);
-	if (ret) {
-		dev_err(&spidev->dev, "spi_recv_resp, data read error = %d\n",
-			ret);
+	if (ret)
 		return ret;
-	}
 
 	return len;
 }
