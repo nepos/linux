@@ -44,16 +44,10 @@ struct st95hf_spi_context {
 	struct mutex spi_lock;
 };
 
-/* flag to differentiate synchronous & asynchronous spi request */
-enum req_type {
-	SYNC,
-	ASYNC,
-};
-
 int st95hf_spi_send(struct st95hf_spi_context *spicontext,
 		    unsigned char *buffertx,
 		    int datalen,
-		    enum req_type reqtype);
+		    bool is_sync);
 
 int st95hf_spi_recv_response(struct st95hf_spi_context *spicontext,
 			     unsigned char *receivebuff);

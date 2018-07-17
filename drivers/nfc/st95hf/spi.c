@@ -23,7 +23,7 @@
 int st95hf_spi_send(struct st95hf_spi_context *spicontext,
 		    unsigned char *buffertx,
 		    int datalen,
-		    enum req_type reqtype)
+		    bool is_sync)
 {
 	struct spi_message m;
 	int result = 0;
@@ -35,12 +35,10 @@ int st95hf_spi_send(struct st95hf_spi_context *spicontext,
 
 	mutex_lock(&spicontext->spi_lock);
 
-	if (reqtype == SYNC) {
-		spicontext->req_issync = true;
+	spicontext->req_issync = is_sync;
+
+	if (is_sync)
 		reinit_completion(&spicontext->done);
-	} else {
-		spicontext->req_issync = false;
-	}
 
 	spi_message_init(&m);
 	spi_message_add_tail(&tx_transfer, &m);
@@ -52,7 +50,7 @@ int st95hf_spi_send(struct st95hf_spi_context *spicontext,
 	}
 
 	/* return for asynchronous or no-wait case */
-	if (reqtype == ASYNC) {
+	if (!is_sync) {
 		mutex_unlock(&spicontext->spi_lock);
 		return 0;
 	}
