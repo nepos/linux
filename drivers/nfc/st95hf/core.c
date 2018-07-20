@@ -991,6 +991,8 @@ static int st95hf_in_send_cmd(struct nfc_digital_dev *ddev,
 		goto free_skb_resp;
 	}
 
+	kfree_skb(skb);
+
 	return rc;
 
 free_skb_resp:
