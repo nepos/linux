@@ -662,7 +662,8 @@ static int st95hf_error_handling(struct st95hf_context *stcontext,
 			result = -ETIMEDOUT;
 		else
 			result = -EIO;
-	return  result;
+
+		return result;
 	}
 
 	/* Check for CRC err only if CRC is present in the tag response */
@@ -844,6 +845,7 @@ end:
 	/* call of callback with error */
 	cb_arg->complete_cb(stcontext->ddev, cb_arg->cb_usrarg, skb_resp);
 	mutex_unlock(&stcontext->rm_lock);
+
 	return IRQ_HANDLED;
 }
 
