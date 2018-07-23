@@ -196,7 +196,6 @@ static const struct cmd cmd_array[] = {
 
 /* st95_digital_cmd_complete_arg stores client context */
 struct st95_digital_cmd_complete_arg {
-	struct sk_buff *skb_resp;
 	nfc_digital_cmd_complete_t complete_cb;
 	void *cb_usrarg;
 	bool rats;
@@ -783,12 +782,10 @@ static irqreturn_t st95hf_irq_thread_handler(int irq, void  *st95hfcontext)
 
 	spidevice = &stcontext->spicontext.spidev->dev;
 	cb_arg = &stcontext->complete_cb_arg;
-	skb_resp = cb_arg->skb_resp;
 
-	if (unlikely(!skb_resp)) {
-		WARN(1, "unknown context in ST95HF ISR");
+	skb_resp = nfc_alloc_recv_skb(MAX_RESPONSE_BUFFER_SIZE, GFP_KERNEL);
+	if (WARN_ON(!skb_resp))
 		return IRQ_NONE;
-	}
 
 	mutex_lock(&stcontext->rm_lock);
 	res_len = st95hf_spi_recv_response(&stcontext->spicontext,
@@ -837,12 +834,6 @@ static irqreturn_t st95hf_irq_thread_handler(int irq, void  *st95hfcontext)
 
 	/* call digital layer callback */
 	cb_arg->complete_cb(stcontext->ddev, cb_arg->cb_usrarg, skb_resp);
-
-	/*
-	 * This skb is now owned by the core layer.
-	 * Make sure not to use it again.
-	 */
-	cb_arg->skb_resp = NULL;
 
 	/* up the semaphore before returning */
 	mutex_unlock(&stcontext->rm_lock);
@@ -913,15 +904,7 @@ static int st95hf_in_send_cmd(struct nfc_digital_dev *ddev,
 			      void *arg)
 {
 	struct st95hf_context *stcontext = nfc_digital_get_drvdata(ddev);
-	int rc;
-	struct sk_buff *skb_resp;
-	int len_data_to_tag = 0;
-
-	skb_resp = nfc_alloc_recv_skb(MAX_RESPONSE_BUFFER_SIZE, GFP_KERNEL);
-	if (!skb_resp) {
-		rc = -ENOMEM;
-		goto error;
-	}
+	int rc, len_data_to_tag = 0;
 
 	switch (stcontext->current_rf_tech) {
 	case NFC_DIGITAL_RF_TECH_106A:
@@ -933,8 +916,7 @@ static int st95hf_in_send_cmd(struct nfc_digital_dev *ddev,
 		len_data_to_tag = skb->len;
 		break;
 	default:
-		rc = -EINVAL;
-		goto free_skb_resp;
+		return -EINVAL;
 	}
 
 	skb_push(skb, 3);
@@ -942,7 +924,6 @@ static int st95hf_in_send_cmd(struct nfc_digital_dev *ddev,
 	skb->data[1] = SEND_RECEIVE_CMD;
 	skb->data[2] = len_data_to_tag;
 
-	stcontext->complete_cb_arg.skb_resp = skb_resp;
 	stcontext->complete_cb_arg.cb_usrarg = arg;
 	stcontext->complete_cb_arg.complete_cb = cb;
 
@@ -956,17 +937,12 @@ static int st95hf_in_send_cmd(struct nfc_digital_dev *ddev,
 	if (rc) {
 		dev_err(&stcontext->nfcdev->dev,
 			"Error %d trying to perform data_exchange", rc);
-		goto free_skb_resp;
+		return rc;
 	}
 
 	kfree_skb(skb);
 
-	return rc;
-
-free_skb_resp:
-	kfree_skb(skb_resp);
-error:
-	return rc;
+	return 0;
 }
 
 /* p2p will be supported in a later release ! */
