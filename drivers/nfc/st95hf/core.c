@@ -796,6 +796,13 @@ static irqreturn_t st95hf_irq_thread_handler(int irq, void  *st95hfcontext)
 		goto end;
 	}
 
+	/*
+	 * If the completion callback is not set, no command is currently
+	 * active. Ignore the spurious interrupt.
+	 */
+	if (unlikely(!cb_arg->complete_cb))
+		goto end;
+
 	/* if stcontext->ddev is %NULL, it means remove already ran */
 	if (!stcontext->ddev) {
 		result = -ENODEV;
@@ -844,8 +851,16 @@ end:
 	wtx = false;
 	cb_arg->rats = false;
 	skb_resp = ERR_PTR(result);
-	/* call of callback with error */
-	cb_arg->complete_cb(stcontext->ddev, cb_arg->cb_usrarg, skb_resp);
+
+	/*
+	 * Report an error to the core. If cb_arg->complete_cb is unset,
+	 * we're handling a spurious interrupt that can be ignored.
+	 */
+	if (cb_arg->complete_cb)
+		cb_arg->complete_cb(stcontext->ddev,
+				    cb_arg->cb_usrarg,
+				    skb_resp);
+
 	mutex_unlock(&stcontext->rm_lock);
 	return IRQ_HANDLED;
 }
