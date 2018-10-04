@@ -25,6 +25,7 @@
 #include <linux/of.h>
 #include <linux/pm.h>
 #include <linux/property.h>
+#include <linux/delay.h>
 
 #define DRV_NAME "rotary-encoder"
 
@@ -40,6 +41,7 @@ struct rotary_encoder {
 
 	u32 steps;
 	u32 axis;
+	u32 keycode_cw, keycode_ccw;
 	bool relative_axis;
 	bool rollover;
 	enum rotary_encoder_encoding encoding;
@@ -76,6 +78,22 @@ static unsigned int rotary_encoder_get_state(struct rotary_encoder *encoder)
 
 static void rotary_encoder_report_event(struct rotary_encoder *encoder)
 {
+	if (encoder->keycode_cw && encoder->keycode_ccw) {
+		u32 code = (encoder->dir < 0) ?
+			encoder->keycode_ccw :
+			encoder->keycode_cw;
+
+		input_report_key(encoder->input, code, 1);
+		input_sync(encoder->input);
+
+		mdelay(1);
+
+		input_report_key(encoder->input, code, 0);
+		input_sync(encoder->input);
+
+		return;
+	}
+
 	if (encoder->relative_axis) {
 		input_report_rel(encoder->input,
 				 encoder->axis, encoder->dir);
@@ -238,6 +256,9 @@ static int rotary_encoder_probe(struct platform_device *pdev)
 	encoder->relative_axis =
 		device_property_read_bool(dev, "rotary-encoder,relative-axis");
 
+	device_property_read_u32(dev, "rotary-encoder,keycode-cw", &encoder->keycode_cw);
+	device_property_read_u32(dev, "rotary-encoder,keycode-ccw", &encoder->keycode_ccw);
+
 	encoder->gpios = devm_gpiod_get_array(dev, NULL, GPIOD_IN);
 	if (IS_ERR(encoder->gpios)) {
 		dev_err(dev, "unable to get gpios\n");
@@ -257,6 +278,12 @@ static int rotary_encoder_probe(struct platform_device *pdev)
 	input->name = pdev->name;
 	input->id.bustype = BUS_HOST;
 	input->dev.parent = dev;
+
+	if (encoder->keycode_cw && encoder->keycode_ccw) {
+		__set_bit(EV_KEY, input->evbit);
+		__set_bit(encoder->keycode_cw, input->keybit);
+		__set_bit(encoder->keycode_ccw, input->keybit);
+	}
 
 	if (encoder->relative_axis)
 		input_set_capability(input, EV_REL, encoder->axis);
